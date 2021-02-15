@@ -1,0 +1,59 @@
+- hosts: webservers
+  become: yes
+  vars:
+    new_env:
+      my_var: mykey
+      folder_name: my_folder_name
+  tasks:
+    - name: install apache
+      yum:
+        name: httpd
+        state: latest
+    - name: create users and add them to apache group
+      user:
+        name: "{{ item }}"
+        groups: apache
+      loop:
+        - will
+        - myles
+    - name: create folder with variable name
+      file:
+        state: directory
+        path: "/root/{{new_env['folder_name']}}"
+        #ignore_errors: yes
+    - name: create index.html
+      template:
+        src: /home/cloud_user/ansible/templates/index.j2
+        dest: /var/www/html/index.html
+        owner: apache
+        group: apache
+        mode: 0644
+      ignore_errors: yes
+      any_errors_fatal: false
+    - name: star and enable httpd
+      service: 
+        name: httpd
+        state: started
+        enabled: yes
+
+- hosts: dbservers
+  become: yes
+  tasks:
+    - name: install postgresql
+      yum:
+        name: postgresql
+        state: latest
+    - name: initialize db cluster
+      command: /usr/bin/postgresql-setup --initdb
+    - name: create db users
+      user: 
+        name: "{{ item }}"
+        groups: postgres
+      loop: 
+        - corey
+        - aaron
+    - name: start and enable postgresql service
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
